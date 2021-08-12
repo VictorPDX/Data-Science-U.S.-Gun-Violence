@@ -34,7 +34,7 @@ cities_dict = {'state_name':'state', 'county_name':'county'}
 
 
 #                     # fips   # fips    name      name
-population_columns = ['STATE', 'COUNTY', 'STNAME', 'CTYNAME',
+population_columns = ['STATE', 'COUNTY', #'STNAME', 'CTYNAME',
                                 'POPESTIMATE2016', 'POPESTIMATE2017', 'POPESTIMATE2018', 'POPESTIMATE2019',
                                 'NPOPCHG_2016', 'NPOPCHG_2017', 'NPOPCHG_2018', 'NPOPCHG_2019',
                                 'BIRTHS2016', 'BIRTHS2017', 'BIRTHS2018', 'BIRTHS2019',
@@ -95,10 +95,8 @@ select_poverty_2018 = poverty_2018[poverty_columns].rename(columns=poverty_dict_
 select_poverty_2019 = poverty_2019[poverty_columns].rename(columns=poverty_dict_2019)
 select_population   = population[population_columns].rename(columns=population_dict)
 
-print(select_cities[['city', 'state', 'county', 'state_fips', 'county_fips']][2505:2506])
-
 # Removes the County suffix from the county column data.
-select_population['county'] = select_population['county'].apply(lambda x: x[:-7] if(' County' in x) else x)
+#select_population['county'] = select_population['county'].apply(lambda x: x[:-7] if(' County' in x) else x)
 
 # Populates the counties column using the counties provided in the city_or_county columns.
 violence['v_county'] = violence['city_or_county'].apply(lambda x: x[:-9] if(' (county)' in x) else pd.NA)
@@ -108,6 +106,18 @@ violence['city'] = violence['city_or_county'].apply(lambda x: pd.NA if(' (county
 violence = violence.drop(columns='city_or_county')
 
 # Merge the datasets together on the appropriate columns.
+d1 = violence.merge(select_cities, on=['state', 'city'], how='left', sort=False)
+d2 = d1.merge(select_population, on=['state_fips', 'county_fips'], how='inner', sort=False)
+d3 = d2.merge(select_poverty_2016, on=['state_fips', 'county_fips'], how='inner', sort=False)
+d4 = d3.merge(select_poverty_2017, on=['state_fips', 'county_fips'], how='inner', sort=False)
+d5 = d4.merge(select_poverty_2018, on=['state_fips', 'county_fips'], how='inner', sort=False)
+d6 = d5.merge(select_poverty_2019, on=['state_fips', 'county_fips'], how='inner', sort=False)
+d6.to_csv('data/joint_dataset2.csv')
+
+
+
+
+"""
 cities_population_joint = select_cities.merge(select_population, on=['state_fips', 'county_fips', 'state', 'county'], how='inner', sort=False)
 city_pop_pov16_joint = cities_population_joint.merge(select_poverty_2016, on=['state_fips', 'county_fips'], how='inner', sort=False)
 city_pop_pov17_joint = city_pop_pov16_joint.merge(select_poverty_2017, on=['state_fips', 'county_fips'], how='inner', sort=False)
@@ -115,98 +125,16 @@ city_pop_pov18_joint = city_pop_pov17_joint.merge(select_poverty_2018, on=['stat
 city_pop_pov19_joint = city_pop_pov18_joint.merge(select_poverty_2019, on=['state_fips', 'county_fips'], how='inner', sort=False)
 
 # Merge the original way
-full_dataset         = violence.merge(city_pop_pov19_joint, on=['state', 'city'], how='left', sort=False)
-full_dataset         = full_dataset.dropna(subset=['incident_id', 'county_fips', 'state_fips', 'county'], how='any')
-print(full_dataset.shape)
-print(full_dataset['state_fips'][100])
-full_dataset.to_csv('data/test_dataset.csv')
-
-# Merge the other way
-#full_dataset         = violence.merge(city_pop_pov19_joint, on=['state', 'city'], how='right', sort=False)
-#full_dataset         = full_dataset.dropna(subset=['incident_id'], how='any')
-#print(full_dataset.shape)
-
-#full_dataset         = city_pop_pov19_joint.merge(violence, on=['state', 'city'], how='right', sort=False)
+#full_dataset         = violence.merge(city_pop_pov19_joint, on=['state', 'city'], how='left', sort=False)
+#full_dataset         = full_dataset.dropna(subset=['incident_id', 'county_fips', 'state_fips', 'county'], how='any')
 #full_dataset.to_csv('data/joint_dataset.csv')
 
-# Join the Databases on the common column criteria.
-# I have the city/state so I need to populate a county column that contains the county for each entry in the gun violence dataset.
-# I have the city name, state name, county fips, state fips. Use these to get the proper county names for each city.
-# Merge the DataFrames using common label types
+# Merge the other way
+full_dataset         = violence.merge(city_pop_pov19_joint, on=['state', 'city'], how='left', sort=False)
+#full_dataset         = full_dataset.dropna(subset=['incident_id'], how='any')
+#full_dataset         = full_dataset.dropnull(subset=['incident_id'], how='any')
+print(full_dataset.shape)
+#full_dataset         = city_pop_pov19_joint.merge(violence, on=['state', 'city'], how='right', sort=False)
+full_dataset.to_csv('data/joint_dataset2.csv')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#slice = cities_df[0:5][0:]
-#print(slice)
-
-#with open("SQL queries/population_and_poverty.sql", 'r') as sql_file:
-#    query = sql_file.read()
-
-#conn = sql.connect(db_path)
-#DataFrame = pd.read_sql(query, conn)
-
-#DataFrame.dropna(axis=0, subset=['Age', 'Sex', 'Type'], how='any', inplace=True)
-
-
-# Frequency counters
-#males = np.zeros(110, dtype=int)
-#females = np.zeros(110, dtype=int)
-
-#for row in DataFrame.itertuples():
-#    Sex, Age, Type =  row[1:]
-#    sexes = re.split(r"\|\||\|", Sex)
-#    ages  = re.split(r"\|\||\|", Age)
-#    types = re.split(r"\|\||\|", Type)
-#    for s, a, t in zip(sexes, ages, types):
-#        age = int(re.split("::|:", a)[1])
-#        if age > 110:
-#            continue
-#        elif re.split("::|:", s)[1].lower() == "male":
-#            #males[age] += 1
-#            pass
-#        else:
-#            #females[age] += 1
-#            pass
-
-
-# Plot
-#plt.style.use('seaborn-whitegrid')
-#plt.title("Gun Incidents by Age")
-#plt.xlabel("Age")
-#plt.ylabel("Incidents")
-#plt.plot(males)
-#plt.plot(females)
-#plt.legend(['Males', "Females"])
-#plt.show()
+"""
